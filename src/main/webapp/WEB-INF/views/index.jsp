@@ -1,9 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
-<%@ page import="java.time.LocalDate" %>
-<%
-	LocalDate now = LocalDate.now();
-%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,8 +7,6 @@
 <title>Insert title here</title>
 </head>
 <body>
-	<h2>
-		오늘은 <%= now %> 입니다.
-	</h2>
+<h1>안녕하세요!!</h1>
 </body>
 </html>
