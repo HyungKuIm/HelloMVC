@@ -1,11 +1,13 @@
 package ServletStudy;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+
+import org.apache.tomcat.jakartaee.commons.lang3.StringUtils;
 
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,6 +41,52 @@ public class DispatcherServlet extends ViewBaseServlet {
 		servletPath = servletPath.substring(0,  lastDotIndex);
 		Object controllerBeanObj = beanFactory.getBean(servletPath);
 		String operate = request.getParameter("operate");
+		if (StringUtils.isEmpty(operate)) {
+			operate = "index";
+		}
+		try {
+			Method[] methods = controllerBeanObj.getClass().getDeclaredMethods();
+			for (Method method : methods) {
+				if (operate.equals(method.getName())) {
+					Parameter[] parameters = method.getParameters();
+					Object[] parameterValues = new Object[parameters.length];
+					for (int i=0; i<parameters.length; i++) {
+						Parameter parameter = parameters[i];
+						String parameterName = parameter.getName();
+						if ("request".equals(parameterName)) {
+							parameterValues[i] = request;
+						} else if ("response".equals(parameterName)) {
+							parameterValues[i] = response;
+						} else if ("session".equals(parameterName)) {
+							parameterValues[i] = request.getSession();
+						} else {
+							String parameterValue = request.getParameter(parameterName);
+							String typeName = parameter.getType().getName();
+							Object parameterObj = parameterValue;
+							if (parameterObj != null) {
+								if ("java.lang.Integer".equals(typeName)) {
+									parameterObj = Integer.parseInt(parameterValue);
+								}
+							}
+							parameterValues[i] = parameterObj;
+						}
+					}
+					method.setAccessible(true);
+					Object returnObj = method.invoke(controllerBeanObj, parameterValues);
+					
+					String methodReturnStr = (String) returnObj;
+					if (methodReturnStr.startsWith("reddirect:")) {
+						String redirectStr = methodReturnStr.substring("redirect:".length());
+						response.sendRedirect(redirectStr);
+					} else {
+						super.processTemplate(methodReturnStr, request, response);
+					}
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new DispatcherServletException("DispatcherServlet 오류발생!");
+		}
 	}
 }
 
